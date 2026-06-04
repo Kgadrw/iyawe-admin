@@ -57,5 +57,8 @@ export const API_ENDPOINTS = {
   adminDocuments: '/api/admin/documents',
   adminUsers: '/api/admin/users',
   adminReports: (type: 'lost' | 'found') => `/api/admin/reports/${type}`,
+  adminReport: (type: 'lost' | 'found', id: string) => `/api/admin/reports/${type}/${id}`,
   adminUpdateStatus: (reportId: string) => `/api/admin/reports/${reportId}/status`,
+  adminAds: '/api/admin/ads',
+  adminAd: (id: string) => `/api/admin/ads/${id}`,
 }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiRequest } from '@/lib/api'
-import { FileCheck, Search, Eye, Plus, Upload, AlertTriangle } from 'lucide-react'
+import { FileCheck, Search, Eye, Plus, Upload, AlertTriangle, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -60,6 +60,8 @@ export default function FoundDocumentsPage() {
   const [uploadFoundOpen, setUploadFoundOpen] = useState(false)
   const [uploadLostOpen, setUploadLostOpen] = useState(false)
   const [urgentDialogOpen, setUrgentDialogOpen] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [documentToDelete, setDocumentToDelete] = useState<FoundDocument | null>(null)
   const [selectedUrgentDoc, setSelectedUrgentDoc] = useState<FoundDocument | null>(null)
   const [urgentMessage, setUrgentMessage] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -107,6 +109,41 @@ export default function FoundDocumentsPage() {
   const handleViewDetails = (doc: FoundDocument) => {
     setSelectedDocument(doc)
     setDialogOpen(true)
+  }
+
+  const handleDelete = (doc: FoundDocument) => {
+    setDocumentToDelete(doc)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!documentToDelete) return
+
+    const id = documentToDelete.id || documentToDelete._id
+    if (!id) return
+
+    try {
+      const response = await apiRequest(`/api/admin/reports/found/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setDeleteConfirmOpen(false)
+        setDocumentToDelete(null)
+        if (selectedDocument && (selectedDocument.id || selectedDocument._id) === id) {
+          setDialogOpen(false)
+          setSelectedDocument(null)
+        }
+        await fetchFoundDocuments()
+        alert('Found report deleted successfully')
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Failed to delete found report')
+      }
+    } catch (error) {
+      console.error('Error deleting found report:', error)
+      alert('An error occurred while deleting the found report')
+    }
   }
 
   const handleToggleUrgent = (doc: FoundDocument) => {
@@ -643,15 +680,24 @@ export default function FoundDocumentsPage() {
                         </Button>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(doc)}
-                          className="rounded-full"
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(doc)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(doc)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -767,6 +813,38 @@ export default function FoundDocumentsPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete found report</DialogTitle>
+            <DialogDescription>
+              This will permanently remove the found report and any linked matches. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {documentToDelete && (
+            <div className="py-2 text-sm text-gray-600 space-y-1">
+              <p>
+                <span className="text-gray-900">Type:</span>{' '}
+                {documentToDelete.documentType?.replace(/_/g, ' ') || 'Document'}
+              </p>
+              {documentToDelete.documentNumber && (
+                <p>
+                  <span className="text-gray-900">Number:</span> {documentToDelete.documentNumber}
+                </p>
+              )}
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleConfirmDelete}>
+              Delete
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

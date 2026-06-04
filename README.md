@@ -26,7 +26,12 @@ npm install
 2. Create a `.env.local` file:
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5000
+# Or point at the main Next.js app if it serves /api routes:
+# NEXT_PUBLIC_API_URL=http://localhost:3000
+NEXT_PUBLIC_PUBLIC_SITE_URL=http://localhost:3000
 ```
+
+The admin UI uses the same Subizwa traffic-sign header and styling as the public homepage.
 
 3. Run the development server:
 ```bash

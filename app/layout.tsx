@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "IYAWE Admin Dashboard",
+  title: "Subizwa Admin Dashboard",
   description: "Admin dashboard for managing lost and found documents",
 };
 

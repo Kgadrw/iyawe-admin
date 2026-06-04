@@ -2,29 +2,91 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { apiRequest } from '@/lib/api'
-import { 
-  FileQuestion, 
-  FileCheck, 
-  Users, 
-  TrendingUp,
-  ArrowUpRight,
-  Search,
-  MoreVertical,
+import {
   RefreshCw,
-  ExternalLink,
-  Calendar,
-  Clock
+  FileQuestion,
+  FileCheck,
+  Users,
+  Building2,
+  Megaphone,
+  Link2,
+  Clock,
+  CheckCircle,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+function StatCard({
+  label,
+  value,
+  href,
+  icon: Icon,
+  iconClass,
+}: {
+  label: string
+  value: number | string
+  href: string
+  icon: typeof FileCheck
+  iconClass: string
+}) {
+  return (
+    <Link href={href} className="block group">
+      <div className="platform-stat-card group-hover:border-blue-200">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs sm:text-sm text-blue-900/60 font-medium">{label}</p>
+            <p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-blue-900 tabular-nums">
+              {value}
+            </p>
+            <p className="mt-1 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+              View details →
+            </p>
+          </div>
+          <div
+            className={cn(
+              'flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl',
+              iconClass
+            )}
+          >
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+function QuickNavCard({
+  href,
+  label,
+  description,
+  icon: Icon,
+}: {
+  href: string
+  label: string
+  description: string
+  icon: typeof FileCheck
+}) {
+  return (
+    <Link
+      href={href}
+      className="platform-stat-card flex items-start gap-3 hover:border-blue-200 group"
+    >
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-900 text-gold-400">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="font-semibold text-blue-900 group-hover:text-blue-700">{label}</p>
+        <p className="text-xs text-blue-900/60 mt-0.5">{description}</p>
+      </div>
+    </Link>
+  )
+}
 
 export default function DashboardPage() {
-  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [documents, setDocuments] = useState<any[]>([])
   const [stats, setStats] = useState({
     totalLost: 0,
     totalFound: 0,
@@ -34,11 +96,6 @@ export default function DashboardPage() {
     verifiedDocuments: 0,
   })
   const [recentDocuments, setRecentDocuments] = useState<any[]>([])
-  const [weeklyStats, setWeeklyStats] = useState({
-    lost: { current: 0, change: 0, trend: 'up' as 'up' | 'down' },
-    found: { current: 0, change: 0, trend: 'up' as 'up' | 'down' },
-    matched: { current: 0, change: 0, trend: 'up' as 'up' | 'down' },
-  })
 
   useEffect(() => {
     fetchDashboardData()
@@ -47,94 +104,33 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      
-      // Fetch latest documents
+
       const docsResponse = await apiRequest('/api/documents/latest?limit=100')
       if (docsResponse.ok) {
         const docsData = await docsResponse.json()
         const docs = docsData.documents || []
-        setDocuments(docs)
-        setRecentDocuments(docs.slice(0, 5))
-
-        // Calculate stats from documents
-        const lostCount = docs.filter((d: any) => d.type === 'lost').length
-        const foundCount = docs.filter((d: any) => d.type === 'found').length
-        const matchedCount = docs.filter((d: any) => d.status === 'MATCHED').length
-        const verifiedCount = docs.filter((d: any) => d.status === 'VERIFIED').length
-        const pendingCount = docs.filter((d: any) => d.status === 'PENDING').length
-
-        // Calculate weekly stats
-        const now = new Date()
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        
-        const thisWeekLost = docs.filter((d: any) => {
-          const docDate = new Date(d.createdAt || d.reportDate)
-          return d.type === 'lost' && docDate >= weekAgo
-        }).length
-        
-        const lastWeekLost = docs.filter((d: any) => {
-          const docDate = new Date(d.createdAt || d.reportDate)
-          const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
-          return d.type === 'lost' && docDate >= twoWeeksAgo && docDate < weekAgo
-        }).length
-
-        const thisWeekFound = docs.filter((d: any) => {
-          const docDate = new Date(d.createdAt || d.reportDate)
-          return d.type === 'found' && docDate >= weekAgo
-        }).length
-        
-        const lastWeekFound = docs.filter((d: any) => {
-          const docDate = new Date(d.createdAt || d.reportDate)
-          const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
-          return d.type === 'found' && docDate >= twoWeeksAgo && docDate < weekAgo
-        }).length
-
-        const thisWeekMatched = docs.filter((d: any) => {
-          const docDate = new Date(d.createdAt || d.reportDate)
-          return d.status === 'MATCHED' && docDate >= weekAgo
-        }).length
-        
-        const lastWeekMatched = docs.filter((d: any) => {
-          const docDate = new Date(d.createdAt || d.reportDate)
-          const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
-          return d.status === 'MATCHED' && docDate >= twoWeeksAgo && docDate < weekAgo
-        }).length
-
-        setWeeklyStats({
-          lost: {
-            current: thisWeekLost,
-            change: Math.abs(thisWeekLost - lastWeekLost),
-            trend: thisWeekLost >= lastWeekLost ? 'up' : 'down'
-          },
-          found: {
-            current: thisWeekFound,
-            change: Math.abs(thisWeekFound - lastWeekFound),
-            trend: thisWeekFound >= lastWeekFound ? 'up' : 'down'
-          },
-          matched: {
-            current: thisWeekMatched,
-            change: Math.abs(thisWeekMatched - lastWeekMatched),
-            trend: thisWeekMatched >= lastWeekMatched ? 'up' : 'down'
-          },
-        })
+        setRecentDocuments(docs.slice(0, 8))
 
         setStats({
-          totalLost: lostCount,
-          totalFound: foundCount,
+          totalLost: docs.filter((d: any) => d.type === 'lost').length,
+          totalFound: docs.filter((d: any) => d.type === 'found').length,
           totalUsers: 0,
-          pendingMatches: pendingCount,
-          matchedDocuments: matchedCount,
-          verifiedDocuments: verifiedCount,
+          pendingMatches: docs.filter((d: any) => !d.status || d.status === 'PENDING').length,
+          matchedDocuments: docs.filter((d: any) => d.status === 'MATCHED').length,
+          verifiedDocuments: docs.filter(
+            (d: any) => d.status === 'VERIFIED' || d.status === 'CLAIM_PENDING'
+          ).length,
         })
       }
 
-      // Fetch users count
       try {
         const usersResponse = await apiRequest('/api/admin/users')
         if (usersResponse.ok) {
           const usersData = await usersResponse.json()
-          const users = usersData.users || []
-          setStats(prev => ({ ...prev, totalUsers: users.length }))
+          setStats((prev) => ({
+            ...prev,
+            totalUsers: (usersData.users || []).length,
+          }))
         }
       } catch (error) {
         console.error('Error fetching users:', error)
@@ -154,372 +150,207 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center h-64">
+        <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
+  const todayCount = recentDocuments.filter((d) => {
+    const docDate = new Date(d.createdAt || d.reportDate)
+    return docDate.toDateString() === new Date().toDateString()
+  }).length
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="p-6 space-y-6">
-        {/* Header with Refresh */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
-            <p className="text-sm text-gray-500 mt-1">Monitor and manage your lost & found system</p>
+    <div className="space-y-6 sm:space-y-8 max-w-6xl">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="platform-section-title">Dashboard</h1>
+          <p className="platform-section-desc">
+            Click a card or icon to open found, lost, staff, stations, or ads
+          </p>
+        </div>
+        <Button
+          onClick={handleRefresh}
+          variant="outline"
+          size="sm"
+          disabled={refreshing}
+          className="rounded-full border-gray-200 text-blue-900"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="Found documents"
+          value={stats.totalFound}
+          href="/dashboard/found"
+          icon={FileCheck}
+          iconClass="text-green-600 bg-green-50"
+        />
+        <StatCard
+          label="Lost reports"
+          value={stats.totalLost}
+          href="/dashboard/lost"
+          icon={FileQuestion}
+          iconClass="text-orange-600 bg-orange-50"
+        />
+        <StatCard
+          label="Staff accounts"
+          value={stats.totalUsers || '—'}
+          href="/dashboard/users"
+          icon={Users}
+          iconClass="text-blue-600 bg-blue-50"
+        />
+        <StatCard
+          label="At station"
+          value={stats.pendingMatches}
+          href="/dashboard/found"
+          icon={Clock}
+          iconClass="text-amber-600 bg-amber-50"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <QuickNavCard
+          href="/dashboard/found"
+          label="Found documents"
+          description="Manage documents at stations"
+          icon={FileCheck}
+        />
+        <QuickNavCard
+          href="/dashboard/lost"
+          label="Lost reports"
+          description="Legacy lost reports"
+          icon={FileQuestion}
+        />
+        <QuickNavCard
+          href="/dashboard/users"
+          label="Staff accounts"
+          description="Officers and institutions"
+          icon={Users}
+        />
+        <QuickNavCard
+          href="/dashboard/handover-points"
+          label="Stations"
+          description="Handover points & institutions"
+          icon={Building2}
+        />
+        <QuickNavCard
+          href="/dashboard/ads"
+          label="Advertisements"
+          description="Banner and sidebar ads"
+          icon={Megaphone}
+        />
+        <QuickNavCard
+          href="/dashboard/found"
+          label="Matched / claimed"
+          description={`${stats.matchedDocuments} matched · ${stats.verifiedDocuments} claimed`}
+          icon={Link2}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="platform-panel">
+          <div className="flex flex-row items-center justify-between border-b border-gray-100 px-4 sm:px-6 py-3 sm:py-4">
+            <h2 className="text-sm sm:text-base font-semibold text-blue-900">Recent documents</h2>
+            <Link href="/dashboard/found" className="text-sm text-blue-700 hover:text-blue-900">
+              View all found →
+            </Link>
           </div>
-          <Button 
-            onClick={handleRefresh} 
-            variant="outline" 
-            size="sm"
-            className="rounded-full"
-            disabled={refreshing}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
-
-        {/* Summary Cards Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Lost Documents Card */}
-          <Link href="/dashboard/lost">
-            <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg rounded-2xl hover:shadow-xl transition-all cursor-pointer hover:scale-105">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-white text-sm font-medium">Lost Documents</CardTitle>
-                <FileQuestion className="h-5 w-5 text-white/80" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold mb-1">{stats.totalLost}</div>
-                <p className="text-orange-100 text-sm">Total reported lost</p>
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm">
-                    <TrendingUp className="h-4 w-4" />
-                    <span>Active reports</span>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-white/60" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Found Documents Card */}
-          <Link href="/dashboard/found">
-            <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg rounded-2xl hover:shadow-xl transition-all cursor-pointer hover:scale-105">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-white text-sm font-medium">Found Documents</CardTitle>
-                <FileCheck className="h-5 w-5 text-white/80" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold mb-1">{stats.totalFound}</div>
-                <p className="text-green-100 text-sm">Total uploaded found</p>
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm">
-                    <TrendingUp className="h-4 w-4" />
-                    <span>Available for matching</span>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-white/60" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Matched Documents Card */}
-          <Card className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white border-0 shadow-lg rounded-2xl">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-white text-sm font-medium">Matched Documents</CardTitle>
-              <Users className="h-5 w-5 text-white/80" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-1">{stats.matchedDocuments}</div>
-              <p className="text-blue-100 text-sm">Successfully matched</p>
-              <div className="mt-4 flex items-center gap-2 text-sm">
-                <TrendingUp className="h-4 w-4" />
-                <span>Awaiting verification</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Statistics Row with Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Lost Documents by Week */}
-          <Card className="rounded-2xl">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium">Lost Documents by Week</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end justify-between mb-2">
-                <div>
-                  <div className="text-2xl font-bold">{weeklyStats.lost.current}</div>
-                  <div className={`flex items-center gap-1 text-sm ${weeklyStats.lost.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                    {weeklyStats.lost.trend === 'up' ? (
-                      <ArrowUpRight className="h-3 w-3" />
-                    ) : (
-                      <ArrowUpRight className="h-3 w-3 rotate-180" />
-                    )}
-                    <span>{weeklyStats.lost.trend === 'up' ? '+' : '-'}{weeklyStats.lost.change} vs last week</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <Calendar className="h-3 w-3" />
-                  <span>This Week</span>
-                </div>
-              </div>
-              <div className="flex items-end gap-2 h-16 mt-4">
-                {[40, 60, 45, 70, 55, 65, weeklyStats.lost.current > 0 ? 80 : 0].map((height, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 bg-gradient-to-t from-orange-500 to-orange-400 rounded-t"
-                    style={{ height: `${Math.max(height * 0.8, 10)}%` }}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Found Documents by Week */}
-          <Card className="rounded-2xl">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium">Found Documents by Week</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end justify-between mb-2">
-                <div>
-                  <div className="text-2xl font-bold">{weeklyStats.found.current}</div>
-                  <div className={`flex items-center gap-1 text-sm ${weeklyStats.found.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                    {weeklyStats.found.trend === 'up' ? (
-                      <ArrowUpRight className="h-3 w-3" />
-                    ) : (
-                      <ArrowUpRight className="h-3 w-3 rotate-180" />
-                    )}
-                    <span>{weeklyStats.found.trend === 'up' ? '+' : '-'}{weeklyStats.found.change} vs last week</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <Calendar className="h-3 w-3" />
-                  <span>This Week</span>
-                </div>
-              </div>
-              <div className="flex items-end gap-2 h-16 mt-4">
-                {[50, 70, 55, 80, 60, 75, weeklyStats.found.current > 0 ? 90 : 0].map((height, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 bg-gradient-to-t from-green-500 to-green-400 rounded-t"
-                    style={{ height: `${Math.max(height * 0.8, 10)}%` }}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Matched Documents by Week */}
-          <Card className="rounded-2xl">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium">Matches by Week</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end justify-between mb-2">
-                <div>
-                  <div className="text-2xl font-bold">{weeklyStats.matched.current}</div>
-                  <div className={`flex items-center gap-1 text-sm ${weeklyStats.matched.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                    {weeklyStats.matched.trend === 'up' ? (
-                      <ArrowUpRight className="h-3 w-3" />
-                    ) : (
-                      <ArrowUpRight className="h-3 w-3 rotate-180" />
-                    )}
-                    <span>{weeklyStats.matched.trend === 'up' ? '+' : '-'}{weeklyStats.matched.change} vs last week</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <Calendar className="h-3 w-3" />
-                  <span>This Week</span>
-                </div>
-              </div>
-              <div className="flex items-end gap-2 h-16 mt-4">
-                {[30, 50, 40, 60, 45, 55, weeklyStats.matched.current > 0 ? 70 : 0].map((height, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t"
-                    style={{ height: `${Math.max(height * 0.8, 10)}%` }}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Latest Documents and Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Latest Documents */}
-          <Card className="rounded-2xl">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Latest Documents</CardTitle>
-                <CardDescription>Recently reported documents</CardDescription>
-              </div>
-              <Link href="/dashboard/lost">
-                <Button variant="ghost" size="sm" className="text-xs rounded-full">
-                  View All
-                  <ExternalLink className="h-3 w-3 ml-1" />
-                </Button>
-              </Link>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentDocuments.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>No recent documents</p>
-                  </div>
-                ) : (
-                  recentDocuments.map((doc, index) => (
-                    <Link 
-                      key={doc.id || index} 
+          <div className="p-4 sm:p-6">
+            {recentDocuments.length === 0 ? (
+              <p className="text-sm text-blue-900/50 py-4">No recent documents.</p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {recentDocuments.map((doc, index) => (
+                  <li key={doc.id || index}>
+                    <Link
                       href={doc.type === 'lost' ? '/dashboard/lost' : '/dashboard/found'}
-                      className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
+                      className="flex items-center justify-between gap-3 py-3 text-sm hover:bg-blue-50/50 -mx-2 px-2 rounded-lg transition-colors"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
-                          doc.type === 'lost' 
-                            ? 'bg-orange-100 text-orange-600' 
-                            : 'bg-green-100 text-green-600'
-                        }`}>
-                          {doc.type === 'lost' ? (
-                            <FileQuestion className="h-5 w-5" />
-                          ) : (
-                            <FileCheck className="h-5 w-5" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
-                            {doc.documentType?.replace(/_/g, ' ') || 'Document'}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {doc.type === 'lost' ? 'Lost' : 'Found'} • {doc.lostLocation || doc.foundLocation || 'No location'}
-                          </p>
-                        </div>
+                      <div className="min-w-0">
+                        <p className="text-blue-900 truncate font-medium">
+                          {doc.documentType?.replace(/_/g, ' ') || 'Document'}
+                        </p>
+                        <p className="text-blue-900/60 text-xs mt-0.5">
+                          {doc.type === 'lost' ? 'Lost' : 'Found'}
+                          {doc.station?.name ? ` · ${doc.station.name}` : ''}
+                          {doc.foundLocation ? ` · ${doc.foundLocation}` : ''}
+                        </p>
                       </div>
-                      <div className="text-right flex items-center gap-2">
-                        <div>
-                          <div className="flex items-center gap-1 text-xs text-gray-500">
-                            <Clock className="h-3 w-3" />
-                            <p className="text-sm font-medium text-gray-900">
-                              {new Date(doc.createdAt || doc.reportDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </p>
-                          </div>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            doc.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
-                            doc.status === 'MATCHED' ? 'bg-blue-100 text-blue-700' :
-                            doc.status === 'VERIFIED' ? 'bg-green-100 text-green-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {doc.status}
-                          </span>
-                        </div>
-                        <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="text-right shrink-0 text-xs text-blue-900/60">
+                        <p>
+                          {new Date(doc.createdAt || doc.reportDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </p>
+                        <p className="mt-0.5">{doc.status || '—'}</p>
                       </div>
                     </Link>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
 
-          {/* System Status */}
-          <Card className="rounded-2xl">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>System Status</CardTitle>
-                <CardDescription>Current system metrics</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Link href="/dashboard/lost" className="flex items-center justify-between p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors cursor-pointer group">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <FileCheck className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600">Pending Matches</p>
-                      <p className="text-xs text-gray-500">Awaiting verification</p>
-                    </div>
-                  </div>
-                  <div className="text-right flex items-center gap-2">
-                    <div>
-                      <p className="text-sm font-semibold text-blue-600">{stats.pendingMatches}</p>
-                      <span className="text-xs text-yellow-600">Active</span>
-                    </div>
-                    <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </Link>
-
-                <div className="flex items-center justify-between p-3 rounded-xl bg-green-50">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-                      <FileCheck className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Verified Documents</p>
-                      <p className="text-xs text-gray-500">Successfully verified</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-green-600">{stats.verifiedDocuments}</p>
-                    <span className="text-xs text-green-600">Success</span>
-                  </div>
-                </div>
-
-                <Link href="/dashboard/users" className="flex items-center justify-between p-3 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors cursor-pointer group">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 group-hover:text-purple-600">Total Users</p>
-                      <p className="text-xs text-gray-500">Registered users</p>
-                    </div>
-                  </div>
-                  <div className="text-right flex items-center gap-2">
-                    <div>
-                      <p className="text-sm font-semibold text-purple-600">{stats.totalUsers || 'N/A'}</p>
-                      <span className="text-xs text-gray-500">Active</span>
-                    </div>
-                    <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </Link>
-
-                <div className="flex items-center justify-between p-3 rounded-xl bg-orange-50">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                      <FileQuestion className="h-5 w-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">New Reports Today</p>
-                      <p className="text-xs text-gray-500">Last 24 hours</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-orange-600">
-                      {recentDocuments.filter(d => {
-                        const docDate = new Date(d.createdAt || d.reportDate)
-                        const today = new Date()
-                        return docDate.toDateString() === today.toDateString()
-                      }).length}
-                    </p>
-                    <span className="text-xs text-green-600">Today</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="platform-panel p-4 sm:p-6">
+          <h2 className="text-sm sm:text-base font-semibold text-blue-900 mb-4">Quick counts</h2>
+          <dl className="divide-y divide-gray-100 text-sm">
+            <Link
+              href="/dashboard/found"
+              className="flex justify-between py-3 gap-4 hover:bg-blue-50/50 -mx-2 px-2 rounded-lg"
+            >
+              <dt className="text-blue-900/60 flex items-center gap-2">
+                <Clock className="h-4 w-4" /> At station (pending)
+              </dt>
+              <dd className="text-blue-900 font-medium tabular-nums">{stats.pendingMatches}</dd>
+            </Link>
+            <Link
+              href="/dashboard/found"
+              className="flex justify-between py-3 gap-4 hover:bg-blue-50/50 -mx-2 px-2 rounded-lg"
+            >
+              <dt className="text-blue-900/60 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" /> Claimed / verified
+              </dt>
+              <dd className="text-blue-900 font-medium tabular-nums">{stats.verifiedDocuments}</dd>
+            </Link>
+            <div className="flex justify-between py-3 gap-4">
+              <dt className="text-blue-900/60">Reports today</dt>
+              <dd className="text-blue-900 font-medium tabular-nums">{todayCount}</dd>
+            </div>
+            <Link
+              href="/dashboard/found"
+              className="flex justify-between py-3 gap-4 hover:bg-blue-50/50 -mx-2 px-2 rounded-lg"
+            >
+              <dt className="text-blue-900/60 flex items-center gap-2">
+                <FileCheck className="h-4 w-4" /> Total found
+              </dt>
+              <dd className="text-blue-900 font-medium tabular-nums">{stats.totalFound}</dd>
+            </Link>
+            <Link
+              href="/dashboard/lost"
+              className="flex justify-between py-3 gap-4 hover:bg-blue-50/50 -mx-2 px-2 rounded-lg"
+            >
+              <dt className="text-blue-900/60 flex items-center gap-2">
+                <FileQuestion className="h-4 w-4" /> Total lost
+              </dt>
+              <dd className="text-blue-900 font-medium tabular-nums">{stats.totalLost}</dd>
+            </Link>
+            <Link
+              href="/dashboard/users"
+              className="flex justify-between py-3 gap-4 hover:bg-blue-50/50 -mx-2 px-2 rounded-lg"
+            >
+              <dt className="text-blue-900/60 flex items-center gap-2">
+                <Users className="h-4 w-4" /> Staff accounts
+              </dt>
+              <dd className="text-blue-900 font-medium tabular-nums">{stats.totalUsers || '—'}</dd>
+            </Link>
+          </dl>
         </div>
       </div>
     </div>
