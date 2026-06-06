@@ -1,10 +1,11 @@
 /**
  * API Configuration for Admin Dashboard
- * Connects to the backend Express.js server
+ * All /api/* requests are proxied to the Express backend (see next.config.ts rewrites).
+ * Use empty string for same-origin proxying so auth cookies work correctly.
  */
 
-// Backend API base URL
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+// Use same-origin (relative URLs) — Next.js rewrites handle proxying to backend
+export const API_BASE_URL = ''
 
 /**
  * Make an API request with proper configuration
@@ -40,7 +41,7 @@ export async function apiRequest(
     return response
   } catch (error) {
     console.error('API Request failed:', error)
-    throw new Error(`Failed to connect to backend server at ${API_BASE_URL}. Make sure the backend is running.`)
+    throw new Error(`Failed to connect to the API server. Please try again.`)
   }
 }
 
