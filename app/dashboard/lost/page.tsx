@@ -370,14 +370,6 @@ export default function LostDocumentsPage() {
               Upload Lost
             </Button>
           </DialogTrigger>
-        </Dialog>
-        <Dialog open={uploadFoundOpen} onOpenChange={setUploadFoundOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="rounded-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Upload Found
-            </Button>
-          </DialogTrigger>
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Upload Lost Document</DialogTitle>
@@ -420,6 +412,7 @@ export default function LostDocumentsPage() {
                   <Input
                     id="lost-lostDate"
                     type="date"
+                    max={new Date().toISOString().split('T')[0]}
                     value={lostFormData.lostDate}
                     onChange={(e) => setLostFormData({ ...lostFormData, lostDate: e.target.value })}
                   />
