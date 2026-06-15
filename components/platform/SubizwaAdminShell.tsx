@@ -9,11 +9,39 @@ import { apiRequest, API_ENDPOINTS } from '@/lib/api'
 export function SubizwaAdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [userEmail, setUserEmail] = useState('')
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('adminEmail')
-    if (stored) setUserEmail(stored)
-  }, [])
+    let cancelled = false
+
+    async function verifySession() {
+      try {
+        const res = await apiRequest(API_ENDPOINTS.me)
+        const data = await res.json()
+
+        if (cancelled) return
+
+        if (!data.user || data.user.role !== 'ADMIN') {
+          sessionStorage.removeItem('adminEmail')
+          router.replace('/login')
+          return
+        }
+
+        setUserEmail(data.user.email || '')
+        sessionStorage.setItem('adminEmail', data.user.email || '')
+      } catch {
+        if (!cancelled) router.replace('/login')
+      } finally {
+        if (!cancelled) setAuthChecked(true)
+      }
+    }
+
+    void verifySession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [router])
 
   const handleLogout = async () => {
     try {
@@ -23,6 +51,14 @@ export function SubizwaAdminShell({ children }: { children: React.ReactNode }) {
     }
     sessionStorage.removeItem('adminEmail')
     router.push('/login')
+  }
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (

@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { attachBackendAuthCookie } from '@/lib/auth-cookie'
+
+const BACKEND_URL = process.env.BACKEND_URL || 'https://iyawe-backend.onrender.com'
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+
+    const backendRes = await fetch(`${BACKEND_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    const data = await backendRes.json()
+
+    if (!backendRes.ok) {
+      return NextResponse.json(data, { status: backendRes.status })
+    }
+
+    if (!data.user?.id || !data.user?.email || !data.user?.role) {
+      return NextResponse.json(
+        { error: 'Invalid login response from server' },
+        { status: 502 }
+      )
+    }
+
+    const backendToken =
+      typeof data.token === 'string' && data.token ? data.token : null
+
+    const res = NextResponse.json({
+      message: data.message || 'Login successful',
+      user: data.user,
+    })
+
+    if (backendToken) {
+      attachBackendAuthCookie(res, backendToken)
+    }
+
+    return res
+  } catch (error) {
+    console.error('Login proxy error:', error)
+    return NextResponse.json(
+      { error: 'Failed to connect to authentication server' },
+      { status: 502 }
+    )
+  }
+}

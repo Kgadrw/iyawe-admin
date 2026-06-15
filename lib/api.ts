@@ -1,10 +1,8 @@
 /**
  * API Configuration for Admin Dashboard
- * All /api/* requests are proxied to the Express backend (see next.config.ts rewrites).
- * Use empty string for same-origin proxying so auth cookies work correctly.
+ * All /api/* requests go through Next.js route handlers that forward auth to the backend.
  */
 
-// Use same-origin (relative URLs) — Next.js rewrites handle proxying to backend
 export const API_BASE_URL = ''
 
 /**
@@ -52,6 +50,7 @@ export const API_ENDPOINTS = {
   // Auth
   login: '/api/auth/login',
   logout: '/api/auth/logout',
+  me: '/api/auth/me',
   
   // Admin endpoints (to be created)
   adminStats: '/api/admin/stats',

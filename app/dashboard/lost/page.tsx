@@ -52,6 +52,19 @@ const DOCUMENT_TYPES = [
 
 export default function LostDocumentsPage() {
   const [documents, setDocuments] = useState<LostDocument[]>([])
+  const [waiting, setWaiting] = useState<
+    Array<{
+      id: string
+      source: string
+      contactName: string
+      contactEmail?: string | null
+      documentType: string
+      documentNumber?: string | null
+      waitingLabel: string
+      createdAt?: string
+    }>
+  >([])
+  const [loadError, setLoadError] = useState('')
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedDocument, setSelectedDocument] = useState<LostDocument | null>(null)
@@ -95,13 +108,24 @@ export default function LostDocumentsPage() {
   const fetchLostDocuments = async () => {
     try {
       setLoading(true)
+      setLoadError('')
       const response = await apiRequest('/api/admin/reports/lost')
-      if (response.ok) {
-        const data = await response.json()
-        setDocuments(data.reports || [])
+      const data = await response.json()
+
+      if (!response.ok) {
+        setLoadError(data.error || 'Failed to load lost documents. Please sign in again.')
+        setDocuments([])
+        setWaiting([])
+        return
       }
+
+      setDocuments(data.reports || [])
+      setWaiting(data.waiting || [])
     } catch (error) {
       console.error('Error fetching lost documents:', error)
+      setLoadError('Could not reach the server. Check your connection and try again.')
+      setDocuments([])
+      setWaiting([])
     } finally {
       setLoading(false)
     }
@@ -637,6 +661,65 @@ export default function LostDocumentsPage() {
 
 
       {/* Table */}
+      {loadError ? (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {loadError}
+        </div>
+      ) : null}
+
+      {waiting.length > 0 ? (
+        <Card className="rounded-2xl mb-6">
+          <CardHeader>
+            <CardTitle>Waiting to be listed</CardTitle>
+            <CardDescription>
+              {waiting.length} user{waiting.length !== 1 ? 's' : ''} registered a missing document and are waiting for it to appear on Subizwa
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Person</TableHead>
+                    <TableHead>Document</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Registered</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {waiting.map((entry) => (
+                    <TableRow key={`${entry.source}-${entry.id}`}>
+                      <TableCell>
+                        <div className="font-medium">{entry.contactName}</div>
+                        {entry.contactEmail ? (
+                          <div className="text-xs text-gray-500">{entry.contactEmail}</div>
+                        ) : null}
+                      </TableCell>
+                      <TableCell>
+                        <div>{entry.documentType?.replace(/_/g, ' ')}</div>
+                        {entry.documentNumber ? (
+                          <div className="text-xs text-gray-500">#{entry.documentNumber}</div>
+                        ) : null}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-800">
+                          {entry.waitingLabel}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {entry.createdAt
+                          ? new Date(entry.createdAt).toLocaleDateString()
+                          : '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card className="rounded-2xl">
         <CardHeader>
           <CardTitle>Lost Documents</CardTitle>
