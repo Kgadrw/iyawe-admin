@@ -50,20 +50,65 @@ const DOCUMENT_TYPES = [
   { value: 'OTHER', label: 'Other' },
 ]
 
+type WaitingEntry = {
+  id: string
+  source: string
+  contactName: string
+  contactEmail?: string | null
+  contactPhone?: string | null
+  documentType: string
+  documentNumber?: string | null
+  description?: string | null
+  lostLocation?: string | null
+  lostDate?: string | null
+  waitingLabel: string
+  createdAt?: string
+}
+
+function formatDocType(value?: string) {
+  return value?.replace(/_/g, ' ') || '—'
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return '—'
+  return new Date(value).toLocaleDateString('en-GB', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return '—'
+  return new Date(value).toLocaleString('en-GB', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function cellOrDash(value?: string | null) {
+  const trimmed = value?.trim()
+  return trimmed || '—'
+}
+
+function reporterName(doc: LostDocument) {
+  return doc.user?.name || doc.reporterName || '—'
+}
+
+function reporterEmail(doc: LostDocument) {
+  return doc.user?.email || doc.reporterEmail || '—'
+}
+
+function reporterPhone(doc: LostDocument) {
+  return doc.user?.phone || doc.reporterPhone || '—'
+}
+
 export default function LostDocumentsPage() {
   const [documents, setDocuments] = useState<LostDocument[]>([])
-  const [waiting, setWaiting] = useState<
-    Array<{
-      id: string
-      source: string
-      contactName: string
-      contactEmail?: string | null
-      documentType: string
-      documentNumber?: string | null
-      waitingLabel: string
-      createdAt?: string
-    }>
-  >([])
+  const [waiting, setWaiting] = useState<WaitingEntry[]>([])
   const [loadError, setLoadError] = useState('')
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -372,7 +417,11 @@ export default function LostDocumentsPage() {
       doc.lostLocation?.toLowerCase().includes(query) ||
       doc.description?.toLowerCase().includes(query) ||
       doc.reporterName?.toLowerCase().includes(query) ||
-      doc.user?.name?.toLowerCase().includes(query)
+      doc.reporterEmail?.toLowerCase().includes(query) ||
+      doc.reporterPhone?.toLowerCase().includes(query) ||
+      doc.user?.name?.toLowerCase().includes(query) ||
+      doc.user?.email?.toLowerCase().includes(query) ||
+      doc.user?.phone?.toLowerCase().includes(query)
     )
   })
 
@@ -680,36 +729,46 @@ export default function LostDocumentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Person</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
                     <TableHead>Document</TableHead>
+                    <TableHead>Doc number</TableHead>
+                    <TableHead>Lost location</TableHead>
+                    <TableHead>Date lost</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Registered</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {waiting.map((entry) => (
-                    <TableRow key={`${entry.source}-${entry.id}`}>
-                      <TableCell>
-                        <div className="font-medium">{entry.contactName}</div>
-                        {entry.contactEmail ? (
-                          <div className="text-xs text-gray-500">{entry.contactEmail}</div>
-                        ) : null}
+                    <TableRow key={`${entry.source}-${entry.id}`} className="align-top">
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {formatDateTime(entry.createdAt)}
+                      </TableCell>
+                      <TableCell className="font-medium">{entry.contactName}</TableCell>
+                      <TableCell className="text-sm">{cellOrDash(entry.contactEmail)}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">{cellOrDash(entry.contactPhone)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatDocType(entry.documentType)}</TableCell>
+                      <TableCell className="text-sm">{cellOrDash(entry.documentNumber)}</TableCell>
+                      <TableCell className="text-sm max-w-[10rem]">{cellOrDash(entry.lostLocation)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">{formatDate(entry.lostDate)}</TableCell>
+                      <TableCell className="text-sm max-w-[14rem]">
+                        <span className="line-clamp-3" title={entry.description || undefined}>
+                          {cellOrDash(entry.description)}
+                        </span>
                       </TableCell>
                       <TableCell>
-                        <div>{entry.documentType?.replace(/_/g, ' ')}</div>
-                        {entry.documentNumber ? (
-                          <div className="text-xs text-gray-500">#{entry.documentNumber}</div>
-                        ) : null}
+                        <span className="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-800">
+                          {entry.source === 'watch_alert' ? 'Email alert' : 'Lost report'}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-800">
                           {entry.waitingLabel}
                         </span>
-                      </TableCell>
-                      <TableCell>
-                        {entry.createdAt
-                          ? new Date(entry.createdAt).toLocaleDateString()
-                          : '—'}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -740,11 +799,15 @@ export default function LostDocumentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Document Type</TableHead>
-                    <TableHead>Document Number</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Lost Date</TableHead>
-                    <TableHead>Reporter</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Document</TableHead>
+                    <TableHead>Doc number</TableHead>
+                    <TableHead>Lost location</TableHead>
+                    <TableHead>Date lost</TableHead>
+                    <TableHead>Description</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Urgent</TableHead>
                     <TableHead className="w-[200px]">Actions</TableHead>
@@ -752,30 +815,35 @@ export default function LostDocumentsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredDocuments.map((doc) => (
-                    <TableRow key={doc._id || doc.id}>
-                      <TableCell className="font-medium">
-                        {doc.documentType?.replace(/_/g, ' ') || 'Document'}
+                    <TableRow key={doc._id || doc.id} className="align-top">
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {formatDateTime(doc.createdAt)}
                       </TableCell>
-                      <TableCell>
-                        {doc.documentNumber || '-'}
+                      <TableCell className="font-medium text-sm">
+                        {reporterName(doc)}
                       </TableCell>
-                      <TableCell>
-                        {doc.lostLocation || '-'}
+                      <TableCell className="text-sm">
+                        {reporterEmail(doc)}
                       </TableCell>
-                      <TableCell>
-                        {doc.lostDate
-                          ? new Date(doc.lostDate).toLocaleDateString()
-                          : new Date(doc.createdAt).toLocaleDateString()}
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {reporterPhone(doc)}
                       </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div className="font-medium">
-                            {doc.user?.name || doc.reporterName || 'Anonymous'}
-                          </div>
-                          <div className="text-gray-500">
-                            {doc.user?.email || doc.reporterEmail || ''}
-                          </div>
-                        </div>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {formatDocType(doc.documentType)}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {cellOrDash(doc.documentNumber)}
+                      </TableCell>
+                      <TableCell className="text-sm max-w-[10rem]">
+                        {cellOrDash(doc.lostLocation)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {formatDate(doc.lostDate)}
+                      </TableCell>
+                      <TableCell className="text-sm max-w-[14rem]">
+                        <span className="line-clamp-3" title={doc.description || undefined}>
+                          {cellOrDash(doc.description)}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <span className={`text-xs px-2 py-1 rounded-full ${
@@ -851,39 +919,29 @@ export default function LostDocumentsPage() {
           {selectedDocument && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-700">Document Type</label>
-                <p className="text-gray-900">{selectedDocument.documentType?.replace(/_/g, ' ') || 'Document'}</p>
+                <label className="text-sm font-medium text-gray-700">Created</label>
+                <p className="text-gray-900">{formatDateTime(selectedDocument.createdAt)}</p>
               </div>
-              {selectedDocument.documentNumber && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Document Number</label>
-                  <p className="text-gray-900">{selectedDocument.documentNumber}</p>
-                </div>
-              )}
-              {selectedDocument.lostLocation && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Lost Location</label>
-                  <p className="text-gray-900">{selectedDocument.lostLocation}</p>
-                </div>
-              )}
-              {selectedDocument.lostDate && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Lost Date</label>
-                  <p className="text-gray-900">
-                    {new Date(selectedDocument.lostDate).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </p>
-                </div>
-              )}
-              {selectedDocument.description && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Description</label>
-                  <p className="text-gray-900 whitespace-pre-wrap">{selectedDocument.description}</p>
-                </div>
-              )}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Document Type</label>
+                <p className="text-gray-900">{formatDocType(selectedDocument.documentType)}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Document Number</label>
+                <p className="text-gray-900">{cellOrDash(selectedDocument.documentNumber)}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Lost Location</label>
+                <p className="text-gray-900">{cellOrDash(selectedDocument.lostLocation)}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Date Lost</label>
+                <p className="text-gray-900">{formatDate(selectedDocument.lostDate)}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Description</label>
+                <p className="text-gray-900 whitespace-pre-wrap">{cellOrDash(selectedDocument.description)}</p>
+              </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Status</label>
                 <p className="text-gray-900">
@@ -897,40 +955,30 @@ export default function LostDocumentsPage() {
                   </span>
                 </p>
               </div>
+              {selectedDocument.isUrgent ? (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Urgent message</label>
+                  <p className="text-gray-900 whitespace-pre-wrap">
+                    {cellOrDash(selectedDocument.urgentMessage)}
+                  </p>
+                </div>
+              ) : null}
               <div className="border-t pt-4">
                 <h3 className="font-semibold text-sm text-gray-900 mb-2">Reporter Information</h3>
                 <div className="space-y-2 text-sm">
                   <div>
                     <span className="text-gray-600">Name:</span>{' '}
-                    <span className="text-gray-900">
-                      {selectedDocument.user?.name || selectedDocument.reporterName || 'Anonymous'}
-                    </span>
+                    <span className="text-gray-900">{reporterName(selectedDocument)}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Email:</span>{' '}
-                    <span className="text-gray-900">
-                      {selectedDocument.user?.email || selectedDocument.reporterEmail || '-'}
-                    </span>
+                    <span className="text-gray-900">{reporterEmail(selectedDocument)}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Phone:</span>{' '}
-                    <span className="text-gray-900">
-                      {selectedDocument.user?.phone || selectedDocument.reporterPhone || '-'}
-                    </span>
+                    <span className="text-gray-900">{reporterPhone(selectedDocument)}</span>
                   </div>
                 </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Reported On</label>
-                <p className="text-gray-900">
-                  {new Date(selectedDocument.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </p>
               </div>
             </div>
           )}
